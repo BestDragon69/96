@@ -1170,7 +1170,7 @@
                 scoreInputArea.style.display = 'none';
             }
 
-            if (gameState.discardPile.length > 0) {
+            if (gameState.discardPile && gameState.discardPile.length > 0) {
                 const lastCard = gameState.discardPile[gameState.discardPile.length - 1];
                 document.getElementById('lastCard').innerHTML = renderCard(lastCard, false);
             } else {
@@ -1772,6 +1772,13 @@ async function joinVideoCall() {
 
     document.getElementById('btnJoinVC').disabled = true;
     setVideoStatus('Accès caméra/micro…', false);
+    console.log('[VC] joinVideoCall — currentGameId=', currentGameId, 'myPlayerId=', myPlayerId, 'myPlayerName=', myPlayerName, 'database=', !!database);
+    if (!currentGameId || !myPlayerId) {
+        alert('Tu dois rejoindre une partie avant de lancer la vidéo !');
+        document.getElementById('btnJoinVC').disabled = false;
+        setVideoStatus('Non connecté', false);
+        return;
+    }
 
     // 1. Demander accès media
     try {
