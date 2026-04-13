@@ -922,9 +922,9 @@
         };
 
         // Vérifier si Firebase est configuré
-        const isFirebaseConfigured = firebaseConfig.apiKey !== "VOTRE_API_KEY";
+        var isFirebaseConfigured = firebaseConfig.apiKey !== "VOTRE_API_KEY";
         
-        let database;
+        var database;
         if (isFirebaseConfigured) {
             firebase.initializeApp(firebaseConfig);
             database = firebase.database();
@@ -936,11 +936,11 @@
         // CODE DU JEU
         // ============================================
         
-        let gameState = null;
-        let myPlayerId = null;
-        let myPlayerName = null;
-        let currentGameId = null;
-        let gameRef = null;
+        var gameState = null;
+        var myPlayerId = null;
+        var myPlayerName = null;
+        var currentGameId = null;
+        var gameRef = null;
 
         const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
         const suitSymbols = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
@@ -1734,8 +1734,7 @@
             return div.innerHTML;
         }
     </script>
-</body>
-</html><script>
+<script>
 // ============================================
 // ONGLETS CHAT
 // ============================================
@@ -1754,14 +1753,12 @@ let localStream = null;    // flux local (micro + caméra)
 let localAudioOnly = false;// true si caméra refusée/désactivée
 let activeCalls = {};      // peerId → MediaConnection
 let vcPresenceRef = null;  // Firebase ref pour les présences VC
+let vcAllPresenceRef = null;  // ref Firebase VC pour cleanup propre
 let micEnabled = true;
 let camEnabled = true;
 let vcActive = false;
 
-// Sécurité : on utilise le peerId firebase = gameId + '_' + playerId (sans caractères interdits)
-function getMyVcPeerId() {
-    return ('vc_' + currentGameId + '_' + myPlayerId).replace(/[^a-zA-Z0-9_-]/g, '_');
-}
+let myVcPeerId = null;
 
 function setVideoStatus(text, on) {
     const el = document.getElementById('videoStatus');
@@ -1774,9 +1771,9 @@ async function joinVideoCall() {
     if (!isFirebaseConfigured) { alert('Firebase requis pour la vidéo.'); return; }
 
     document.getElementById('btnJoinVC').disabled = true;
-    setVideoStatus('Connexion en cours…', false);
+    setVideoStatus('Accès caméra/micro…', false);
 
-    // 1. Demander accès media (d'abord vidéo+audio, fallback audio seul)
+    // 1. Demander accès media
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         localAudioOnly = false;
@@ -1785,53 +1782,66 @@ async function joinVideoCall() {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
             localAudioOnly = true;
         } catch (e2) {
-            alert('Impossible d\'accéder au micro/caméra : ' + e2.message);
+            alert("Impossible d'accéder au micro/caméra : " + e2.message);
             document.getElementById('btnJoinVC').disabled = false;
-            setVideoStatus('Erreur d\'accès media', false);
+            setVideoStatus('Erreur accès media', false);
             return;
         }
     }
 
-    // 2. Afficher sa propre tuile
-    renderVideoTile(getMyVcPeerId(), localStream, myPlayerName + ' (Moi)', true);
+    setVideoStatus('Connexion au serveur…', false);
 
-    // 3. Créer le peer PeerJS (serveur public gratuit)
-    const myPeerId = getMyVcPeerId();
-    peer = new Peer(myPeerId, {
+    // 2. PeerID aléatoire pour éviter les conflits "ID taken"
+    myVcPeerId = 'vc-' + Math.random().toString(36).substr(2, 9);
+
+    peer = new Peer(myVcPeerId, {
         config: {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
             ]
         }
     });
 
     peer.on('open', (id) => {
+        myVcPeerId = id;
         vcActive = true;
+
+        // 3. Afficher sa propre tuile
+        renderVideoTile('__local__', localStream, myPlayerName + ' (Moi)', true);
+
         document.getElementById('btnLeaveVC').disabled = false;
         document.getElementById('btnToggleMic').disabled = false;
         document.getElementById('btnToggleCam').disabled = localAudioOnly;
-        setVideoStatus('Connecté' + (localAudioOnly ? ' (audio seulement)' : ''), true);
+        setVideoStatus('Connecté' + (localAudioOnly ? ' (audio seul)' : ''), true);
 
-        // 4. Annoncer sa présence dans Firebase
+        // 4. Annoncer présence Firebase
         vcPresenceRef = database.ref('vc/' + currentGameId + '/' + myPlayerId);
-        vcPresenceRef.set({ peerId: id, name: myPlayerName, timestamp: Date.now() });
+        vcPresenceRef.set({ peerId: id, name: myPlayerName, ts: Date.now() });
         vcPresenceRef.onDisconnect().remove();
 
-        // 5. Écouter les autres participants et les appeler
-        const allPresenceRef = database.ref('vc/' + currentGameId);
-        allPresenceRef.on('child_added', (snap) => {
+        // 5. Écouter les autres présences — tout le monde appelle tout le monde
+        vcAllPresenceRef = database.ref('vc/' + currentGameId);
+        vcAllPresenceRef.on('child_added', (snap) => {
             const data = snap.val();
-            if (!data || data.peerId === id) return; // ne pas s'appeler soi-même
-            if (activeCalls[data.peerId]) return;    // déjà connecté
-            callPeer(data.peerId, data.name);
+            if (!data || data.peerId === id) return;   // ignorer soi-même
+            if (activeCalls[data.peerId]) return;       // déjà connecté
+            console.log('[VC] child_added, appel vers', data.peerId, data.name);
+            // Délai aléatoire pour éviter que les deux s'appellent en même temps
+            const delay = 300 + Math.random() * 700;
+            setTimeout(() => {
+                if (!activeCalls[data.peerId] && peer && localStream) {
+                    callPeer(data.peerId, data.name);
+                }
+            }, delay);
         });
-        allPresenceRef.on('child_removed', (snap) => {
+        vcAllPresenceRef.on('child_removed', (snap) => {
             const data = snap.val();
             if (!data) return;
             removeVideoTile(data.peerId);
             if (activeCalls[data.peerId]) {
-                activeCalls[data.peerId].close();
+                try { activeCalls[data.peerId].close(); } catch(e) {}
                 delete activeCalls[data.peerId];
             }
         });
@@ -1839,13 +1849,30 @@ async function joinVideoCall() {
 
     // 6. Répondre aux appels entrants
     peer.on('call', (call) => {
+        console.log('[VC] appel entrant de', call.peer);
+        // Si on a déjà un stream de cet utilisateur, ignorer le doublon
+        if (document.getElementById('vtile_' + call.peer)) {
+            console.log('[VC] doublon ignoré pour', call.peer);
+            call.answer(localStream); // répondre quand même pour ne pas bloquer l'appelant
+            return;
+        }
         call.answer(localStream);
         handleCallStream(call);
     });
 
     peer.on('error', (err) => {
-        console.error('PeerJS error:', err);
+        console.error('PeerJS error:', err.type, err);
+        if (err.type === 'peer-unavailable') return;
         setVideoStatus('Erreur: ' + err.type, false);
+        if (['network','server-error','socket-error','socket-closed'].includes(err.type)) {
+            leaveVideoCall();
+        }
+    });
+
+    peer.on('disconnected', () => {
+        if (!vcActive) return;
+        setVideoStatus('Reconnexion…', false);
+        try { peer.reconnect(); } catch(e) {}
     });
 }
 
@@ -1876,35 +1903,62 @@ function handleCallStream(call, remoteName) {
 function renderVideoTile(peerId, stream, name, isLocal) {
     const grid = document.getElementById('videosGrid');
 
-    // Vider le placeholder si présent
-    if (grid.children.length === 1 && grid.children[0].tagName !== 'DIV'.toUpperCase() || 
-        (grid.children.length === 1 && !grid.children[0].classList.contains('video-tile'))) {
+    // Vider le placeholder (div sans classe video-tile)
+    if (grid.children.length === 1 && !grid.children[0].classList.contains('video-tile')) {
         grid.innerHTML = '';
     }
 
+    // Réutiliser la tuile existante si elle existe déjà
     let tile = document.getElementById('vtile_' + peerId);
     if (!tile) {
         tile = document.createElement('div');
         tile.className = 'video-tile';
         tile.id = 'vtile_' + peerId;
         grid.appendChild(tile);
+    } else {
+        // Vider sans toucher aux éléments vidéo existants
+        tile.innerHTML = '';
     }
 
-    const hasVideo = stream.getVideoTracks().length > 0;
+    const hasVideo = stream.getVideoTracks().length > 0 &&
+                     stream.getVideoTracks().some(t => t.enabled);
+
     if (hasVideo) {
-        tile.innerHTML = `
-            <video id="vid_${peerId}" autoplay playsinline ${isLocal ? 'muted' : ''}></video>
-            <div class="video-tile-label">${escapeHtml(name)}</div>
-            <div class="video-tile-muted" id="micon_${peerId}"></div>
-        `;
-        const vid = document.getElementById('vid_' + peerId);
+        // Créer la vidéo via createElement pour garder le srcObject stable
+        const vid = document.createElement('video');
+        vid.id = 'vid_' + peerId;
+        vid.autoplay = true;
+        vid.playsInline = true;
+        if (isLocal) vid.muted = true;
+        vid.style.cssText = 'width:100%;display:block;border-radius:10px;background:#000;max-height:180px;object-fit:cover;';
+        // Assigner srcObject AVANT d'insérer dans le DOM
         vid.srcObject = stream;
+
+        const label = document.createElement('div');
+        label.className = 'video-tile-label';
+        label.textContent = name;
+
+        const micon = document.createElement('div');
+        micon.className = 'video-tile-muted';
+        micon.id = 'micon_' + peerId;
+
+        tile.appendChild(vid);
+        tile.appendChild(label);
+        tile.appendChild(micon);
+
+        // Forcer la lecture après insertion DOM
+        vid.play().catch(() => {});
     } else {
-        tile.innerHTML = `
-            <div class="no-video-avatar">🎤</div>
-            <div class="video-tile-label">${escapeHtml(name)} — audio seul</div>
-            <div class="video-tile-muted" id="micon_${peerId}"></div>
-        `;
+        const avatar = document.createElement('div');
+        avatar.className = 'no-video-avatar';
+        avatar.textContent = '🎤';
+
+        const label = document.createElement('div');
+        label.className = 'video-tile-label';
+        label.textContent = name + ' — audio seul';
+
+        tile.appendChild(avatar);
+        tile.appendChild(label);
     }
 }
 
@@ -1918,30 +1972,22 @@ function removeVideoTile(peerId) {
 }
 
 function leaveVideoCall() {
-    if (!vcActive) return;
-    // Couper tous les appels
+    if (!vcActive && !localStream) return;
     Object.values(activeCalls).forEach(c => { try { c.close(); } catch(e){} });
     activeCalls = {};
-    // Couper le flux local
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-    // Fermer le peer
     if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
-    // Supprimer présence Firebase
-    if (vcPresenceRef) { vcPresenceRef.remove(); vcPresenceRef = null; }
-    // Retirer l'écoute Firebase
-    if (isFirebaseConfigured && currentGameId) {
-        database.ref('vc/' + currentGameId).off();
-    }
+    if (vcPresenceRef) { try { vcPresenceRef.remove(); } catch(e){} vcPresenceRef = null; }
+    if (vcAllPresenceRef) { try { vcAllPresenceRef.off(); } catch(e){} vcAllPresenceRef = null; }
     vcActive = false;
-    // Reset UI
-    document.getElementById('videosGrid').innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.5);font-size:0.85em;padding:20px 10px;">Cliquez sur "Rejoindre" pour<br>démarrer la vidéo/vocal</div>';
+    myVcPeerId = null;
+    document.getElementById('videosGrid').innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.5);font-size:0.85em;padding:20px 10px;">Cliquez sur &quot;Rejoindre&quot; pour<br>démarrer la vidéo/vocal</div>';
     document.getElementById('btnJoinVC').disabled = false;
     document.getElementById('btnLeaveVC').disabled = true;
     document.getElementById('btnToggleMic').disabled = true;
     document.getElementById('btnToggleCam').disabled = true;
     setVideoStatus('Non connecté', false);
 }
-
 function toggleMic() {
     if (!localStream) return;
     micEnabled = !micEnabled;
@@ -1967,3 +2013,5 @@ if (_origLeaveGame) {
     };
 }
 </script>
+</body>
+</html>
