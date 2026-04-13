@@ -461,6 +461,143 @@
             min-width: 0;
         }
 
+        /* ---- ONGLETS CHAT ---- */
+        .chat-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 0;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+        }
+        .chat-tab-btn {
+            flex: 1;
+            padding: 10px 5px;
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.95em;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        .chat-tab-btn.active {
+            color: #FFD700;
+            border-bottom-color: #FFD700;
+        }
+        .chat-tab-btn:hover:not(.active) {
+            color: rgba(255,255,255,0.9);
+        }
+        .chat-tab-panel {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+        .chat-tab-panel.active {
+            display: flex;
+        }
+
+        /* ---- VIDEO / VOCAL ---- */
+        .video-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            padding-top: 10px;
+        }
+        .video-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .video-ctrl-btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .video-ctrl-btn.green  { background: #27ae60; color: #fff; }
+        .video-ctrl-btn.green:hover  { background: #2ecc71; }
+        .video-ctrl-btn.red    { background: #e74c3c; color: #fff; }
+        .video-ctrl-btn.red:hover    { background: #c0392b; }
+        .video-ctrl-btn.orange { background: #e67e22; color: #fff; }
+        .video-ctrl-btn.orange:hover { background: #d35400; }
+        .video-ctrl-btn.blue   { background: #3498db; color: #fff; }
+        .video-ctrl-btn.blue:hover   { background: #2980b9; }
+        .video-ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .video-status {
+            text-align: center;
+            font-size: 0.8em;
+            color: rgba(255,255,255,0.7);
+            padding: 4px 0;
+        }
+        .video-status .dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+            background: #aaa;
+        }
+        .video-status.on .dot { background: #2ecc71; }
+        .video-status.off .dot { background: #e74c3c; }
+
+        .videos-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .video-tile {
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+        .video-tile video {
+            width: 100%;
+            display: block;
+            border-radius: 10px;
+            background: #000;
+            max-height: 180px;
+            object-fit: cover;
+        }
+        .video-tile-label {
+            position: absolute;
+            bottom: 6px;
+            left: 8px;
+            background: rgba(0,0,0,0.6);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.78em;
+            color: #fff;
+        }
+        .video-tile-muted {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 1em;
+        }
+        .no-video-avatar {
+            width: 100%;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            background: rgba(255,255,255,0.07);
+            border-radius: 10px;
+        }
+
         .chat-container {
             width: 350px;
             background: rgba(255,255,255,0.1);
@@ -673,17 +810,49 @@
                 </div>
 
                 <div class="chat-container">
-                    <div class="chat-header">💬 Chat</div>
-                    <div class="chat-messages" id="chatMessages"></div>
-                    <div class="chat-input-container">
-                        <input 
-                            type="text" 
-                            id="chatInput" 
-                            class="chat-input" 
-                            placeholder="Votre message..."
-                            onkeypress="if(event.key==='Enter') sendChatMessage()"
-                        >
-                        <button class="chat-send-btn" onclick="sendChatMessage()">📤</button>
+                    <div class="chat-header" style="padding-bottom:0;margin-bottom:0;">
+                        🎮 Communication
+                    </div>
+                    <!-- ONGLETS -->
+                    <div class="chat-tabs">
+                        <button class="chat-tab-btn active" id="tabBtnMsg" onclick="switchTab('msg')">💬 Messages</button>
+                        <button class="chat-tab-btn" id="tabBtnVideo" onclick="switchTab('video')">🎥 Vidéo / Vocal</button>
+                    </div>
+
+                    <!-- PANNEAU MESSAGES -->
+                    <div class="chat-tab-panel active" id="tabPanelMsg">
+                        <div class="chat-messages" id="chatMessages"></div>
+                        <div class="chat-input-container">
+                            <input 
+                                type="text" 
+                                id="chatInput" 
+                                class="chat-input" 
+                                placeholder="Votre message..."
+                                onkeypress="if(event.key==='Enter') sendChatMessage()"
+                            >
+                            <button class="chat-send-btn" onclick="sendChatMessage()">📤</button>
+                        </div>
+                    </div>
+
+                    <!-- PANNEAU VIDEO -->
+                    <div class="chat-tab-panel" id="tabPanelVideo">
+                        <div class="video-panel">
+                            <div class="video-status off" id="videoStatus">
+                                <span class="dot"></span><span id="videoStatusText">Non connecté</span>
+                            </div>
+                            <div class="video-controls">
+                                <button class="video-ctrl-btn green" id="btnJoinVC" onclick="joinVideoCall()">📹 Rejoindre</button>
+                                <button class="video-ctrl-btn red"   id="btnLeaveVC" onclick="leaveVideoCall()" disabled>🚪 Quitter</button>
+                                <button class="video-ctrl-btn orange" id="btnToggleMic" onclick="toggleMic()" disabled>🎤 Micro</button>
+                                <button class="video-ctrl-btn blue"   id="btnToggleCam" onclick="toggleCam()" disabled>📷 Caméra</button>
+                            </div>
+                            <div class="videos-grid" id="videosGrid">
+                                <!-- tuiles vidéo injectées dynamiquement -->
+                                <div style="text-align:center;color:rgba(255,255,255,0.5);font-size:0.85em;padding:20px 10px;">
+                                    Cliquez sur "Rejoindre" pour<br>démarrer la vidéo/vocal
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -729,6 +898,7 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
 
     <script>
         // ============================================
@@ -1565,4 +1735,235 @@
         }
     </script>
 </body>
-</html>
+</html><script>
+// ============================================
+// ONGLETS CHAT
+// ============================================
+function switchTab(tab) {
+    document.getElementById('tabBtnMsg').classList.toggle('active', tab === 'msg');
+    document.getElementById('tabBtnVideo').classList.toggle('active', tab === 'video');
+    document.getElementById('tabPanelMsg').classList.toggle('active', tab === 'msg');
+    document.getElementById('tabPanelVideo').classList.toggle('active', tab === 'video');
+}
+
+// ============================================
+// VIDEO / VOCAL — WebRTC via PeerJS + Firebase
+// ============================================
+let peer = null;           // PeerJS instance
+let localStream = null;    // flux local (micro + caméra)
+let localAudioOnly = false;// true si caméra refusée/désactivée
+let activeCalls = {};      // peerId → MediaConnection
+let vcPresenceRef = null;  // Firebase ref pour les présences VC
+let micEnabled = true;
+let camEnabled = true;
+let vcActive = false;
+
+// Sécurité : on utilise le peerId firebase = gameId + '_' + playerId (sans caractères interdits)
+function getMyVcPeerId() {
+    return ('vc_' + currentGameId + '_' + myPlayerId).replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+
+function setVideoStatus(text, on) {
+    const el = document.getElementById('videoStatus');
+    el.className = 'video-status ' + (on ? 'on' : 'off');
+    document.getElementById('videoStatusText').textContent = text;
+}
+
+async function joinVideoCall() {
+    if (vcActive) return;
+    if (!isFirebaseConfigured) { alert('Firebase requis pour la vidéo.'); return; }
+
+    document.getElementById('btnJoinVC').disabled = true;
+    setVideoStatus('Connexion en cours…', false);
+
+    // 1. Demander accès media (d'abord vidéo+audio, fallback audio seul)
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localAudioOnly = false;
+    } catch (e) {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            localAudioOnly = true;
+        } catch (e2) {
+            alert('Impossible d\'accéder au micro/caméra : ' + e2.message);
+            document.getElementById('btnJoinVC').disabled = false;
+            setVideoStatus('Erreur d\'accès media', false);
+            return;
+        }
+    }
+
+    // 2. Afficher sa propre tuile
+    renderVideoTile(getMyVcPeerId(), localStream, myPlayerName + ' (Moi)', true);
+
+    // 3. Créer le peer PeerJS (serveur public gratuit)
+    const myPeerId = getMyVcPeerId();
+    peer = new Peer(myPeerId, {
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        }
+    });
+
+    peer.on('open', (id) => {
+        vcActive = true;
+        document.getElementById('btnLeaveVC').disabled = false;
+        document.getElementById('btnToggleMic').disabled = false;
+        document.getElementById('btnToggleCam').disabled = localAudioOnly;
+        setVideoStatus('Connecté' + (localAudioOnly ? ' (audio seulement)' : ''), true);
+
+        // 4. Annoncer sa présence dans Firebase
+        vcPresenceRef = database.ref('vc/' + currentGameId + '/' + myPlayerId);
+        vcPresenceRef.set({ peerId: id, name: myPlayerName, timestamp: Date.now() });
+        vcPresenceRef.onDisconnect().remove();
+
+        // 5. Écouter les autres participants et les appeler
+        const allPresenceRef = database.ref('vc/' + currentGameId);
+        allPresenceRef.on('child_added', (snap) => {
+            const data = snap.val();
+            if (!data || data.peerId === id) return; // ne pas s'appeler soi-même
+            if (activeCalls[data.peerId]) return;    // déjà connecté
+            callPeer(data.peerId, data.name);
+        });
+        allPresenceRef.on('child_removed', (snap) => {
+            const data = snap.val();
+            if (!data) return;
+            removeVideoTile(data.peerId);
+            if (activeCalls[data.peerId]) {
+                activeCalls[data.peerId].close();
+                delete activeCalls[data.peerId];
+            }
+        });
+    });
+
+    // 6. Répondre aux appels entrants
+    peer.on('call', (call) => {
+        call.answer(localStream);
+        handleCallStream(call);
+    });
+
+    peer.on('error', (err) => {
+        console.error('PeerJS error:', err);
+        setVideoStatus('Erreur: ' + err.type, false);
+    });
+}
+
+function callPeer(remotePeerId, remoteName) {
+    if (!peer || !localStream) return;
+    const call = peer.call(remotePeerId, localStream);
+    activeCalls[remotePeerId] = call;
+    handleCallStream(call, remoteName);
+}
+
+function handleCallStream(call, remoteName) {
+    call.on('stream', (remoteStream) => {
+        const name = remoteName || call.peer;
+        activeCalls[call.peer] = call;
+        renderVideoTile(call.peer, remoteStream, name, false);
+    });
+    call.on('close', () => {
+        removeVideoTile(call.peer);
+        delete activeCalls[call.peer];
+    });
+    call.on('error', (e) => {
+        console.error('Call error:', e);
+        removeVideoTile(call.peer);
+        delete activeCalls[call.peer];
+    });
+}
+
+function renderVideoTile(peerId, stream, name, isLocal) {
+    const grid = document.getElementById('videosGrid');
+
+    // Vider le placeholder si présent
+    if (grid.children.length === 1 && grid.children[0].tagName !== 'DIV'.toUpperCase() || 
+        (grid.children.length === 1 && !grid.children[0].classList.contains('video-tile'))) {
+        grid.innerHTML = '';
+    }
+
+    let tile = document.getElementById('vtile_' + peerId);
+    if (!tile) {
+        tile = document.createElement('div');
+        tile.className = 'video-tile';
+        tile.id = 'vtile_' + peerId;
+        grid.appendChild(tile);
+    }
+
+    const hasVideo = stream.getVideoTracks().length > 0;
+    if (hasVideo) {
+        tile.innerHTML = `
+            <video id="vid_${peerId}" autoplay playsinline ${isLocal ? 'muted' : ''}></video>
+            <div class="video-tile-label">${escapeHtml(name)}</div>
+            <div class="video-tile-muted" id="micon_${peerId}"></div>
+        `;
+        const vid = document.getElementById('vid_' + peerId);
+        vid.srcObject = stream;
+    } else {
+        tile.innerHTML = `
+            <div class="no-video-avatar">🎤</div>
+            <div class="video-tile-label">${escapeHtml(name)} — audio seul</div>
+            <div class="video-tile-muted" id="micon_${peerId}"></div>
+        `;
+    }
+}
+
+function removeVideoTile(peerId) {
+    const tile = document.getElementById('vtile_' + peerId);
+    if (tile) tile.remove();
+    const grid = document.getElementById('videosGrid');
+    if (grid.children.length === 0) {
+        grid.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.5);font-size:0.85em;padding:20px 10px;">Personne d\'autre dans l\'appel</div>';
+    }
+}
+
+function leaveVideoCall() {
+    if (!vcActive) return;
+    // Couper tous les appels
+    Object.values(activeCalls).forEach(c => { try { c.close(); } catch(e){} });
+    activeCalls = {};
+    // Couper le flux local
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    // Fermer le peer
+    if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
+    // Supprimer présence Firebase
+    if (vcPresenceRef) { vcPresenceRef.remove(); vcPresenceRef = null; }
+    // Retirer l'écoute Firebase
+    if (isFirebaseConfigured && currentGameId) {
+        database.ref('vc/' + currentGameId).off();
+    }
+    vcActive = false;
+    // Reset UI
+    document.getElementById('videosGrid').innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.5);font-size:0.85em;padding:20px 10px;">Cliquez sur "Rejoindre" pour<br>démarrer la vidéo/vocal</div>';
+    document.getElementById('btnJoinVC').disabled = false;
+    document.getElementById('btnLeaveVC').disabled = true;
+    document.getElementById('btnToggleMic').disabled = true;
+    document.getElementById('btnToggleCam').disabled = true;
+    setVideoStatus('Non connecté', false);
+}
+
+function toggleMic() {
+    if (!localStream) return;
+    micEnabled = !micEnabled;
+    localStream.getAudioTracks().forEach(t => t.enabled = micEnabled);
+    document.getElementById('btnToggleMic').textContent = micEnabled ? '🎤 Micro' : '🔇 Micro';
+    document.getElementById('btnToggleMic').style.opacity = micEnabled ? '1' : '0.6';
+}
+
+function toggleCam() {
+    if (!localStream || localAudioOnly) return;
+    camEnabled = !camEnabled;
+    localStream.getVideoTracks().forEach(t => t.enabled = camEnabled);
+    document.getElementById('btnToggleCam').textContent = camEnabled ? '📷 Caméra' : '🙈 Caméra';
+    document.getElementById('btnToggleCam').style.opacity = camEnabled ? '1' : '0.6';
+}
+
+// Quitter la VC si on quitte la partie
+const _origLeaveGame = typeof leaveGame === 'function' ? leaveGame : null;
+if (_origLeaveGame) {
+    window.leaveGame = function() {
+        leaveVideoCall();
+        _origLeaveGame();
+    };
+}
+</script>
