@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeu du 96 - Multijoueur</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 3em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .lobby {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .lobby input {
+            padding: 15px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 10px;
+            margin: 10px;
+            width: 300px;
+        }
+
+        .lobby button {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+        }
+
+        .lobby button:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .game-board {
+            display: none;
+        }
+
+        .game-board.active {
+            display: block;
+        }
+
+        .game-info {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .total-score {
+            font-size: 4em;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.5);
+            transition: opacity 0.3s;
+        }
+
+        .total-score.hidden {
+            opacity: 0;
+            user-select: none;
+        }
+
+        .score-input-area {
+            background: rgba(255,215,0,0.2);
+            border: 3px solid #FFD700;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .score-input-area h3 {
+            color: #FFD700;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .score-input {
+            padding: 15px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 10px;
+            width: 200px;
+            text-align: center;
+            margin: 10px;
+        }
+
+        .score-submit-btn {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            background: #FFD700;
+            color: #1e3c72;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .score-submit-btn:hover {
+            background: #FFC700;
+            transform: scale(1.05);
+        }
+
+        .players-list {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .player-card {
+            background: rgba(255,255,255,0.15);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 150px;
+        }
+
+        .player-card.current {
+            background: rgba(255,215,0,0.3);
+            border: 3px solid #FFD700;
+        }
+
+        .player-card.eliminated {
+            opacity: 0.5;
+            background: rgba(255,0,0,0.2);
+        }
+
+        .player-drinks {
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(230,126,34,0.3);
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .player-clickable {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .player-clickable:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+        }
+
+        .distribute-mode {
+            background: rgba(230,126,34,0.4);
+            border: 3px solid #e67e22;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .distribute-mode h3 {
+            color: #e67e22;
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .drinks-badge {
+            display: inline-block;
+            background: #e67e22;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .reset-drinks-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+
+        .reset-drinks-btn:hover {
+            background: #c0392b;
+        }
+
+        .hand {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .card {
+            width: 120px;
+            height: 170px;
+            background: white;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+
+        .card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .card.disabled:hover {
+            transform: none;
+        }
+
+        .card-value {
+            font-size: 3em;
+            font-weight: bold;
+        }
+
+        .card-suit {
+            font-size: 2em;
+        }
+
+        .card.hearts .card-value,
+        .card.hearts .card-suit,
+        .card.diamonds .card-value,
+        .card.diamonds .card-suit {
+            color: #e74c3c;
+        }
+
+        .card.clubs .card-value,
+        .card.clubs .card-suit,
+        .card.spades .card-value,
+        .card.spades .card-suit {
+            color: #2c3e50;
+        }
+
+        .card.joker {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .discard-pile {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .last-card {
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .mise-a-mort {
+            background: rgba(255,0,0,0.2);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 3px solid #e74c3c;
+        }
+
+        .mise-a-mort h2 {
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+
+        .mise-a-mort-cards {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .choice-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .choice-buttons button {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .choice-buttons button:hover {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+
+        .message {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            text-align: center;
+            font-size: 1.2em;
+        }
+
+        .player-selector {
+            background: rgba(255,255,255,0.15);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .player-selector h3 {
+            margin-bottom: 15px;
+        }
+
+        .drinks-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(230,126,34,0.95);
+            padding: 40px;
+            border-radius: 20px;
+            font-size: 2em;
+            font-weight: bold;
+            z-index: 1000;
+            animation: popup 0.5s ease;
+        }
+
+        @keyframes popup {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .rules-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .rules-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .rules-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            overflow-y: auto;
+        }
+
+        .rules-modal.active {
+            display: block;
+        }
+
+        .rules-content {
+            max-width: 800px;
+            margin: 50px auto;
+            background: white;
+            color: #333;
+            padding: 40px;
+            border-radius: 20px;
+        }
+
+        .rules-content h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .rules-content ul {
+            margin-left: 20px;
+            line-height: 1.8;
+        }
+
+        .close-rules {
+            float: right;
+            font-size: 2em;
+            cursor: pointer;
+            color: #e74c3c;
+        }
+
+        .firebase-warning {
+            background: rgba(255,193,7,0.3);
+            border: 2px solid #ffc107;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .main-layout {
+            display: flex;
+            gap: 20px;
+        }
+
+        .game-area {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-container {
+            width: 350px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 180px);
+            position: sticky;
+            top: 20px;
+        }
+
+        .chat-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        .chat-message {
+            background: rgba(255,255,255,0.15);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            word-wrap: break-word;
+        }
+
+        .chat-message.own {
+            background: rgba(76,175,80,0.3);
+        }
+
+        .chat-sender {
+            font-weight: bold;
+            color: #FFD700;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .chat-text {
+            color: white;
+        }
+
+        .chat-time {
+            font-size: 0.7em;
+            color: rgba(255,255,255,0.6);
+            margin-top: 5px;
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            background: rgba(255,255,255,0.9);
+        }
+
+        .chat-send-btn {
+            padding: 12px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .chat-send-btn:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            
+            .chat-container {
+                width: 100%;
+                height: 400px;
+                position: relative;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🃏 Jeu du 96 🍺</h1>
+
+        <button class="rules-button" onclick="toggleRules()">📖 Règles</button>
+
+        <div class="lobby" id="lobby">
+            <div id="firebaseWarning" class="firebase-warning" style="display: none;">
+                <h3>⚠️ Configuration Firebase requise</h3>
+                <p>Veuillez configurer Firebase dans le code pour activer le multijoueur en ligne.</p>
+                <p>Voir les instructions dans les commentaires du fichier HTML.</p>
+            </div>
+            <h2>Rejoindre une partie</h2>
+            <input type="text" id="gameId" placeholder="ID de la partie (optionnel)">
+            <input type="text" id="playerName" placeholder="Votre pseudo">
+            <button onclick="joinGame()">Rejoindre / Créer</button>
+        </div>
+
+        <div class="game-board" id="gameBoard">
+            <div class="main-layout">
+                <div class="game-area">
+                    <div class="game-info">
+                        <div>
+                            <h3>Total actuel</h3>
+                            <div class="total-score" id="totalScore">0</div>
+                        </div>
+                        <div>
+                            <h3>Partie: <span id="currentGameId"></span></h3>
+                            <button onclick="leaveGame()" style="padding: 10px 20px; margin-top: 10px;">Quitter</button>
+                        </div>
+                    </div>
+
+                    <div class="players-list" id="playersList"></div>
+
+                    <div id="scoreInputArea" style="display: none;">
+                        <div class="score-input-area">
+                            <h3>📊 Annoncez le score !</h3>
+                            <p id="scoreInputPlayer"></p>
+                            <input 
+                                type="number" 
+                                id="scoreInput" 
+                                class="score-input" 
+                                placeholder="Score ?"
+                                onkeypress="if(event.key==='Enter') submitScore()"
+                            >
+                            <br>
+                            <button class="score-submit-btn" onclick="submitScore()">✓ Valider</button>
+                        </div>
+                    </div>
+
+                    <div id="distributeDrinksArea" style="display: none;">
+                        <div class="distribute-mode">
+                            <h3>🍺 Distribution de gorgées</h3>
+                            <p id="distributeDrinksText"></p>
+                            <p style="margin-top: 10px;">Cliquez sur un joueur pour lui donner une gorgée</p>
+                            <button onclick="finishDistribution()" style="margin-top: 15px; padding: 10px 30px; background: #27ae60; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 1.1em;">
+                                ✓ Terminer la distribution
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="messageArea"></div>
+
+                    <div class="discard-pile">
+                        <h3>Dernière carte jouée</h3>
+                        <div id="lastCard" class="last-card"></div>
+                    </div>
+
+                    <div id="yourTurnArea" style="display: none;">
+                        <h2 style="text-align: center; margin: 20px 0;">C'est votre tour !</h2>
+                        <div class="hand" id="playerHand"></div>
+                    </div>
+
+                    <div id="miseAMortArea" style="display: none;">
+                        <div class="mise-a-mort">
+                            <h2>⚰️ MISE À MORT ⚰️</h2>
+                            <p id="miseAMortPlayer"></p>
+                            <p id="miseAMortStep"></p>
+                            <div class="mise-a-mort-cards" id="miseAMortCards"></div>
+                            <div id="miseAMortChoices"></div>
+                        </div>
+                    </div>
+
+                    <div id="jokerPlayerSelector" style="display: none;">
+                        <div class="player-selector">
+                            <h3>Choisissez un joueur avec qui échanger votre main</h3>
+                            <div class="choice-buttons" id="jokerPlayers"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-container">
+                    <div class="chat-header">💬 Chat</div>
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input-container">
+                        <input 
+                            type="text" 
+                            id="chatInput" 
+                            class="chat-input" 
+                            placeholder="Votre message..."
+                            onkeypress="if(event.key==='Enter') sendChatMessage()"
+                        >
+                        <button class="chat-send-btn" onclick="sendChatMessage()">📤</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="rules-modal" id="rulesModal">
+        <div class="rules-content">
+            <span class="close-rules" onclick="toggleRules()">×</span>
+            <h2>Règles du 96</h2>
+            <h3>Règles de base</h3>
+            <ul>
+                <li>Jeu avec 54 cartes (jokers inclus)</li>
+                <li>Chaque joueur reçoit 4 cartes</li>
+                <li>À chaque tour : poser une carte, annoncer le total, repiocher</li>
+                <li>But : ne pas dépasser 96 !</li>
+            </ul>
+            <h3>Cartes spéciales</h3>
+            <ul>
+                <li><strong>As</strong> : vaut 1 ou 11 (au choix)</li>
+                <li><strong>Valet</strong> : vaut 0</li>
+                <li><strong>Dame</strong> : vaut -10</li>
+                <li><strong>Roi</strong> : ramène le total à 70</li>
+                <li><strong>Joker</strong> : vaut 0 et échange la main avec un autre joueur</li>
+            </ul>
+            <h3>Règles de boisson</h3>
+            <ul>
+                <li><strong>Dizaines</strong> (10, 20, 30...) : distribuer N gorgées (1 pour 10, 2 pour 20...)</li>
+                <li><strong>Multiples de 11</strong> (11, 22, 33...) : tous les joueurs boivent N gorgées</li>
+            </ul>
+            <h3>Mise à mort</h3>
+            <p>Si vous dépassez 96, vous devez réussir 4 étapes consécutives :</p>
+            <ul>
+                <li><strong>Étape 1</strong> : Rouge ou Noir</li>
+                <li><strong>Étape 2</strong> : Plus ou Moins (que la 1ère carte)</li>
+                <li><strong>Étape 3</strong> : Interne ou Externe (entre les 2 premières)</li>
+                <li><strong>Étape 4</strong> : Couleur (♥♦♣♠)</li>
+            </ul>
+            <p>En cas d'échec : retirer les cartes, boire autant de gorgées que l'étape, et recommencer depuis le début !</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+        // ============================================
+        // CONFIGURATION FIREBASE - À REMPLACER !
+        // ============================================
+        // 1. Va sur https://console.firebase.google.com/
+        // 2. Crée un nouveau projet
+        // 3. Active "Realtime Database" en mode test
+        // 4. Dans les paramètres du projet, récupère ta configuration
+        // 5. Remplace les valeurs ci-dessous avec ta configuration
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPB6tjA8bmbhdMRID0BD3FiA-V2vtVccY",
+            authDomain: "jeu96-13a82.firebaseapp.com",
+            databaseURL: "https://jeu96-13a82-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "jeu96-13a82",
+            storageBucket: "jeu96-13a82.firebasestorage.app",
+            messagingSenderId: "814796348584",
+            appId: "1:814796348584:web:9db47cc7e78bfef42c769d",
+            measurementId: "G-N903VRMGYC"
+        };
+
+        // Vérifier si Firebase est configuré
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "VOTRE_API_KEY";
+        
+        let database;
+        if (isFirebaseConfigured) {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+        } else {
+            document.getElementById('firebaseWarning').style.display = 'block';
+        }
+
+        // ============================================
+        // CODE DU JEU
+        // ============================================
+        
+        let gameState = null;
+        let myPlayerId = null;
+        let myPlayerName = null;
+        let currentGameId = null;
+        let gameRef = null;
+
+        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+        const suitSymbols = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' };
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+        function generateId() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        function createDeck() {
+            const deck = [];
+            for (const suit of suits) {
+                for (const value of values) {
+                    deck.push({ suit, value });
+                }
+            }
+            deck.push({ suit: 'joker', value: 'JOKER' });
+            deck.push({ suit: 'joker', value: 'JOKER' });
+            return shuffleDeck(deck);
+        }
+
+        function shuffleDeck(deck) {
+            const shuffled = [...deck];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function getCardValue(card, isAceHigh = false) {
+            if (card.value === 'JOKER') return 0;
+            if (card.value === 'J') return 0;
+            if (card.value === 'Q') return -10;
+            if (card.value === 'K') return 70;
+            if (card.value === 'A') return isAceHigh ? 11 : 1;
+            return parseInt(card.value);
+        }
+
+        function getCardNumericValue(card) {
+            if (card.value === 'JOKER') return 0;
+            if (card.value === 'J') return 11;
+            if (card.value === 'Q') return 12;
+            if (card.value === 'K') return 13;
+            if (card.value === 'A') return 14;
+            return parseInt(card.value);
+        }
+
+        async function joinGame() {
+            if (!isFirebaseConfigured) {
+                alert('Firebase n\'est pas configuré. Veuillez configurer Firebase dans le code.');
+                return;
+            }
+
+            const gameIdInput = document.getElementById('gameId').value.trim();
+            const playerNameInput = document.getElementById('playerName').value.trim();
+
+            if (!playerNameInput) {
+                alert('Veuillez entrer votre pseudo');
+                return;
+            }
+
+            myPlayerName = playerNameInput;
+            myPlayerId = generateId();
+            currentGameId = gameIdInput || generateId();
+
+            gameRef = database.ref('games/' + currentGameId);
+
+            try {
+                const snapshot = await gameRef.once('value');
+                const existingGame = snapshot.val();
+
+                if (existingGame) {
+                    gameState = existingGame;
+                    gameState.players.push({
+                        id: myPlayerId,
+                        name: myPlayerName,
+                        hand: [],
+                        eliminated: false,
+                        drinks: 0
+                    });
+
+                    for (let i = 0; i < 4; i++) {
+                        if (gameState.deck.length > 0) {
+                            gameState.players[gameState.players.length - 1].hand.push(gameState.deck.pop());
+                        }
+                    }
+                } else {
+                    gameState = {
+                        gameId: currentGameId,
+                        players: [{
+                            id: myPlayerId,
+                            name: myPlayerName,
+                            hand: [],
+                            eliminated: false,
+                            drinks: 0
+                        }],
+                        deck: createDeck(),
+                        discardPile: [],
+                        currentTotal: 0,
+                        currentPlayerIndex: 0,
+                        miseAMort: null,
+                        lastAction: null,
+                        waitingForJokerChoice: null,
+                        distributeDrinks: null,
+                        showTotal: false,
+                        waitingForScore: null
+                    };
+
+                    for (let i = 0; i < 4; i++) {
+                        gameState.players[0].hand.push(gameState.deck.pop());
+                    }
+                }
+
+                await gameRef.set(gameState);
+                
+                // Listen for changes
+                gameRef.on('value', (snapshot) => {
+                    gameState = snapshot.val();
+                    renderGame();
+                });
+
+                // Setup chat
+                setupChat();
+
+                showGameBoard();
+            } catch (error) {
+                console.error('Error joining game:', error);
+                alert('Erreur lors de la connexion à la partie: ' + error.message);
+            }
+        }
+
+        function showGameBoard() {
+            document.getElementById('lobby').style.display = 'none';
+            document.getElementById('gameBoard').classList.add('active');
+            document.getElementById('currentGameId').textContent = currentGameId;
+            renderGame();
+        }
+
+        function leaveGame() {
+            if (gameRef) {
+                gameRef.off();
+            }
+            if (chatRef) {
+                chatRef.off();
+            }
+            location.reload();
+        }
+
+        function renderGame() {
+            if (!gameState) return;
+
+            // Show/hide total score based on showTotal flag
+            const totalScoreElement = document.getElementById('totalScore');
+            totalScoreElement.textContent = gameState.currentTotal;
+            if (gameState.showTotal) {
+                totalScoreElement.classList.remove('hidden');
+            } else {
+                totalScoreElement.classList.add('hidden');
+            }
+
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = '';
+            
+            const isDistributing = gameState.distributeDrinks && gameState.distributeDrinks.distributorId === myPlayerId;
+            
+            gameState.players.forEach((player, index) => {
+                // Ensure drinks counter exists
+                if (player.drinks === undefined) {
+                    player.drinks = 0;
+                }
+                
+                const playerCard = document.createElement('div');
+                playerCard.className = 'player-card';
+                
+                if (index === gameState.currentPlayerIndex && !gameState.miseAMort) {
+                    playerCard.classList.add('current');
+                }
+                if (player.eliminated) {
+                    playerCard.classList.add('eliminated');
+                }
+                
+                // Make clickable during distribution
+                if (isDistributing && player.id !== myPlayerId) {
+                    playerCard.classList.add('player-clickable');
+                    playerCard.onclick = () => giveDrinkToPlayer(index);
+                }
+                
+                playerCard.innerHTML = `
+                    <strong>${player.name}</strong>
+                    ${player.id === myPlayerId ? ' (Vous)' : ''}
+                    <br>Cartes: ${player.hand.length}
+                    ${player.eliminated ? '<br>❌ Éliminé' : ''}
+                    <div class="player-drinks">
+                        🍺 Gorgées: ${player.drinks}
+                        ${player.id === myPlayerId ? '<button class="reset-drinks-btn" onclick="resetMyDrinks()">Reset</button>' : ''}
+                    </div>
+                `;
+                playersList.appendChild(playerCard);
+            });
+
+            // Show/hide distribution area
+            const distributeArea = document.getElementById('distributeDrinksArea');
+            if (isDistributing) {
+                distributeArea.style.display = 'block';
+                const remaining = gameState.distributeDrinks.remaining;
+                document.getElementById('distributeDrinksText').textContent = 
+                    `Il vous reste ${remaining} gorgée(s) à distribuer`;
+            } else {
+                distributeArea.style.display = 'none';
+            }
+
+            // Show/hide score input area
+            const scoreInputArea = document.getElementById('scoreInputArea');
+            if (gameState.waitingForScore && gameState.waitingForScore.playerId === myPlayerId) {
+                scoreInputArea.style.display = 'block';
+                const player = gameState.players.find(p => p.id === myPlayerId);
+                document.getElementById('scoreInputPlayer').textContent = 
+                    `${player.name}, quel est le score actuel ?`;
+                // Focus on input
+                setTimeout(() => {
+                    const input = document.getElementById('scoreInput');
+                    input.value = '';
+                    input.focus();
+                }, 100);
+            } else {
+                scoreInputArea.style.display = 'none';
+            }
+
+            if (gameState.discardPile.length > 0) {
+                const lastCard = gameState.discardPile[gameState.discardPile.length - 1];
+                document.getElementById('lastCard').innerHTML = renderCard(lastCard, false);
+            } else {
+                document.getElementById('lastCard').innerHTML = '<p>Aucune carte jouée</p>';
+            }
+
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            const isMyTurn = currentPlayer && currentPlayer.id === myPlayerId && 
+                            !gameState.miseAMort && !gameState.distributeDrinks && !gameState.waitingForScore;
+            
+            document.getElementById('yourTurnArea').style.display = isMyTurn ? 'block' : 'none';
+
+            if (isMyTurn) {
+                renderPlayerHand();
+            }
+
+            if (gameState.miseAMort) {
+                renderMiseAMort();
+            } else {
+                document.getElementById('miseAMortArea').style.display = 'none';
+            }
+
+            if (gameState.waitingForJokerChoice && gameState.waitingForJokerChoice.playerId === myPlayerId) {
+                renderJokerSelector();
+            } else {
+                document.getElementById('jokerPlayerSelector').style.display = 'none';
+            }
+        }
+
+        function renderPlayerHand() {
+            const myPlayer = gameState.players.find(p => p.id === myPlayerId);
+            if (!myPlayer) return;
+
+            const handDiv = document.getElementById('playerHand');
+            handDiv.innerHTML = '';
+
+            myPlayer.hand.forEach((card, index) => {
+                const cardDiv = document.createElement('div');
+                cardDiv.innerHTML = renderCard(card, true);
+                cardDiv.onclick = () => playCard(index, card);
+                handDiv.appendChild(cardDiv);
+            });
+        }
+
+        function renderCard(card, clickable = false) {
+            if (card.value === 'JOKER') {
+                return `<div class="card joker ${clickable ? '' : 'disabled'}">
+                    <div class="card-value">🃏</div>
+                    <div>JOKER</div>
+                </div>`;
+            }
+
+            return `<div class="card ${card.suit} ${clickable ? '' : 'disabled'}">
+                <div class="card-value">${card.value}</div>
+                <div class="card-suit">${suitSymbols[card.suit]}</div>
+            </div>`;
+        }
+
+        async function playCard(cardIndex, card) {
+            if (card.value === 'A') {
+                const choice = confirm('As : Cliquez OK pour 11, Annuler pour 1');
+                await handleCardPlay(cardIndex, card, choice ? 11 : 1);
+            } else if (card.value === 'JOKER') {
+                gameState.waitingForJokerChoice = { playerId: myPlayerId, cardIndex };
+                await gameRef.set(gameState);
+            } else {
+                await handleCardPlay(cardIndex, card);
+            }
+        }
+
+        function renderJokerSelector() {
+            const selector = document.getElementById('jokerPlayerSelector');
+            const playersDiv = document.getElementById('jokerPlayers');
+            playersDiv.innerHTML = '';
+
+            gameState.players.forEach((player, index) => {
+                if (player.id !== myPlayerId && !player.eliminated) {
+                    const button = document.createElement('button');
+                    button.textContent = player.name;
+                    button.onclick = () => handleJokerChoice(index);
+                    playersDiv.appendChild(button);
+                }
+            });
+
+            selector.style.display = 'block';
+        }
+
+        async function handleJokerChoice(targetPlayerIndex) {
+            const myPlayerIndex = gameState.players.findIndex(p => p.id === myPlayerId);
+            const myPlayer = gameState.players[myPlayerIndex];
+            const targetPlayer = gameState.players[targetPlayerIndex];
+
+            const tempHand = myPlayer.hand;
+            myPlayer.hand = targetPlayer.hand;
+            targetPlayer.hand = tempHand;
+
+            const jokerIndex = myPlayer.hand.findIndex(c => c.value === 'JOKER');
+            if (jokerIndex !== -1) {
+                const joker = myPlayer.hand.splice(jokerIndex, 1)[0];
+                gameState.discardPile.push(joker);
+            }
+
+            if (!gameState.deck) gameState.deck = [];
+            if (gameState.deck.length === 0) reshuffleDeck();
+            if (gameState.deck && gameState.deck.length > 0) {
+                targetPlayer.hand.push(gameState.deck.pop());
+            }
+
+            if (gameState.deck.length === 0) reshuffleDeck();
+            if (gameState.deck && gameState.deck.length > 0) {
+                myPlayer.hand.push(gameState.deck.pop());
+            }
+
+            gameState.lastAction = `${myPlayer.name} a échangé sa main avec ${targetPlayer.name} !`;
+            gameState.waitingForJokerChoice = null;
+            
+            moveToNextPlayer();
+
+            await gameRef.set(gameState);
+        }
+
+        async function handleCardPlay(cardIndex, card, aceValue = null) {
+            const myPlayerIndex = gameState.players.findIndex(p => p.id === myPlayerId);
+            const myPlayer = gameState.players[myPlayerIndex];
+
+            // Ensure arrays exist
+            if (!gameState.deck) gameState.deck = [];
+            if (!gameState.discardPile) gameState.discardPile = [];
+            if (!myPlayer.hand) myPlayer.hand = [];
+
+            myPlayer.hand.splice(cardIndex, 1);
+            gameState.discardPile.push(card);
+
+            let newTotal = gameState.currentTotal;
+
+            if (card.value === 'K') {
+                newTotal = 70;
+                gameState.lastAction = `${myPlayer.name} a joué un Roi - Score ramené à 70 !`;
+            } else if (card.value === 'A') {
+                newTotal += aceValue;
+                gameState.lastAction = `${myPlayer.name} a joué un As (${aceValue})`;
+            } else {
+                newTotal += getCardValue(card);
+                gameState.lastAction = `${myPlayer.name} a joué ${card.value}${suitSymbols[card.suit]}`;
+            }
+
+            // Set the actual total but don't show it yet
+            gameState.currentTotal = newTotal;
+            gameState.showTotal = false;
+
+            // Enter score guessing mode
+            gameState.waitingForScore = {
+                playerId: myPlayerId,
+                playerIndex: myPlayerIndex,
+                actualTotal: newTotal
+            };
+
+            await gameRef.set(gameState);
+        }
+
+        function checkDrinks() {
+            const total = gameState.currentTotal;
+            
+            // Check for multiples of 10
+            if (total % 10 === 0 && total > 0 && total < 100) {
+                const drinks = total / 10;
+                
+                // Draw a card first before entering distribution mode
+                const myPlayerIndex = gameState.players.findIndex(p => p.id === myPlayerId);
+                const myPlayer = gameState.players[myPlayerIndex];
+                if (!gameState.deck) gameState.deck = [];
+                if (gameState.deck.length === 0) reshuffleDeck();
+                if (gameState.deck && gameState.deck.length > 0) {
+                    myPlayer.hand.push(gameState.deck.pop());
+                }
+                
+                // Start distribution mode for the current player
+                gameState.distributeDrinks = {
+                    distributorId: myPlayerId,
+                    total: drinks,
+                    remaining: drinks,
+                    playerIndex: myPlayerIndex
+                };
+                gameRef.set(gameState);
+                return;
+            }
+
+            // Check for multiples of 11 - everyone drinks automatically
+            if (total % 11 === 0 && total > 0) {
+                const drinks = Math.floor(total / 11);
+                gameState.players.forEach(player => {
+                    if (!player.drinks) player.drinks = 0;
+                    player.drinks += drinks;
+                });
+                showDrinksNotification(`Multiple de 11 ! Tout le monde boit ${drinks} gorgée(s) !`, 2000);
+                gameRef.set(gameState);
+            }
+        }
+
+        function showDrinksNotification(message, duration) {
+            const notification = document.createElement('div');
+            notification.className = 'drinks-notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), duration);
+        }
+
+        function moveToNextPlayer() {
+            do {
+                gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+            } while (gameState.players[gameState.currentPlayerIndex].eliminated);
+        }
+
+        function reshuffleDeck() {
+            if (gameState.discardPile.length > 1) {
+                const lastCard = gameState.discardPile.pop();
+                gameState.deck = shuffleDeck(gameState.discardPile);
+                gameState.discardPile = [lastCard];
+            }
+        }
+
+        function startMiseAMort(playerIndex) {
+            gameState.players[playerIndex].eliminated = true;
+            gameState.miseAMort = {
+                playerIndex: playerIndex,
+                step: 1,
+                cards: []
+            };
+            gameState.lastAction = `${gameState.players[playerIndex].name} a dépassé 96 ! Mise à mort...`;
+        }
+
+        function renderMiseAMort() {
+            const mam = gameState.miseAMort;
+            if (!mam) return;
+
+            const area = document.getElementById('miseAMortArea');
+            const player = gameState.players[mam.playerIndex];
+            
+            if (!player) return;
+            
+            document.getElementById('miseAMortPlayer').textContent = 
+                `Joueur: ${player.name} ${player.id === myPlayerId ? '(VOUS)' : ''}`;
+            
+            const stepTexts = [
+                'Étape 1/4 : Rouge ou Noir ?',
+                'Étape 2/4 : Plus ou Moins ?',
+                'Étape 3/4 : Interne ou Externe ?',
+                'Étape 4/4 : Quelle couleur ?'
+            ];
+            document.getElementById('miseAMortStep').textContent = stepTexts[mam.step - 1];
+
+            const cardsDiv = document.getElementById('miseAMortCards');
+            if (!mam.cards) mam.cards = [];
+            
+            cardsDiv.innerHTML = '';
+            if (Array.isArray(mam.cards)) {
+                mam.cards.forEach(card => {
+                    if (card) {
+                        cardsDiv.innerHTML += renderCard(card, false);
+                    }
+                });
+            }
+
+            const choicesDiv = document.getElementById('miseAMortChoices');
+            if (player.id === myPlayerId) {
+                renderMiseAMortChoices(choicesDiv, mam.step, mam.cards || []);
+            } else {
+                choicesDiv.innerHTML = '<p>En attente du joueur...</p>';
+            }
+
+            area.style.display = 'block';
+        }
+
+        function renderMiseAMortChoices(choicesDiv, step, cards) {
+            if (!cards) cards = [];
+            
+            choicesDiv.innerHTML = '<div class="choice-buttons">';
+            
+            if (step === 1) {
+                choicesDiv.innerHTML += `
+                    <button onclick="makeMiseAMortChoice('red')">❤️ Rouge</button>
+                    <button onclick="makeMiseAMortChoice('black')">♠️ Noir</button>
+                `;
+            } else if (step === 2) {
+                choicesDiv.innerHTML += `
+                    <button onclick="makeMiseAMortChoice('higher')">⬆️ Plus</button>
+                    <button onclick="makeMiseAMortChoice('lower')">⬇️ Moins</button>
+                `;
+            } else if (step === 3) {
+                const canBeInternal = cards.length >= 2 && cards[0] && cards[1] && 
+                    getCardNumericValue(cards[0]) !== getCardNumericValue(cards[1]);
+                
+                choicesDiv.innerHTML += `
+                    <button onclick="makeMiseAMortChoice('internal')" ${!canBeInternal ? 'disabled style="opacity:0.3"' : ''}>
+                        🎯 Interne
+                    </button>
+                    <button onclick="makeMiseAMortChoice('external')">🌍 Externe</button>
+                `;
+            } else if (step === 4) {
+                choicesDiv.innerHTML += `
+                    <button onclick="makeMiseAMortChoice('hearts')">♥ Cœur</button>
+                    <button onclick="makeMiseAMortChoice('diamonds')">♦ Carreau</button>
+                    <button onclick="makeMiseAMortChoice('clubs')">♣ Trèfle</button>
+                    <button onclick="makeMiseAMortChoice('spades')">♠ Pique</button>
+                `;
+            }
+            
+            choicesDiv.innerHTML += '</div>';
+        }
+
+        async function makeMiseAMortChoice(choice) {
+            const mam = gameState.miseAMort;
+            if (!mam) return;
+            
+            // Ensure cards array exists
+            if (!mam.cards) mam.cards = [];
+
+            if (!gameState.deck) gameState.deck = [];
+            if (!gameState.discardPile) gameState.discardPile = [];
+            
+            if (gameState.deck.length === 0) reshuffleDeck();
+            if (!gameState.deck || gameState.deck.length === 0) return;
+            
+            let drawnCard = gameState.deck.pop();
+            
+            while (drawnCard.value === 'JOKER') {
+                gameState.discardPile.push(drawnCard);
+                if (gameState.deck.length === 0) reshuffleDeck();
+                drawnCard = gameState.deck.pop();
+            }
+
+            let success = false;
+
+            if (mam.step === 1) {
+                const isRed = drawnCard.suit === 'hearts' || drawnCard.suit === 'diamonds';
+                success = (choice === 'red' && isRed) || (choice === 'black' && !isRed);
+            } else if (mam.step === 2) {
+                const prevValue = getCardNumericValue(mam.cards[0]);
+                const currValue = getCardNumericValue(drawnCard);
+                if (choice === 'higher') {
+                    success = currValue >= prevValue;
+                } else {
+                    success = currValue <= prevValue;
+                }
+            } else if (mam.step === 3) {
+                const val1 = getCardNumericValue(mam.cards[0]);
+                const val2 = getCardNumericValue(mam.cards[1]);
+                const currValue = getCardNumericValue(drawnCard);
+                const min = Math.min(val1, val2);
+                const max = Math.max(val1, val2);
+                
+                if (choice === 'internal') {
+                    success = currValue >= min && currValue <= max;
+                } else {
+                    success = currValue <= min || currValue >= max;
+                }
+            } else if (mam.step === 4) {
+                success = drawnCard.suit === choice;
+            }
+
+            mam.cards.push(drawnCard);
+
+            if (success) {
+                if (mam.step === 4) {
+                    showDrinksNotification(`${gameState.players[mam.playerIndex].name} a survécu ! 🎉`, 3000);
+                    gameState.players[mam.playerIndex].eliminated = false;
+                    gameState.miseAMort = null;
+                    gameState.currentTotal = 0;
+                    moveToNextPlayer();
+                } else {
+                    mam.step++;
+                }
+            } else {
+                const drinks = mam.step;
+                const player = gameState.players[mam.playerIndex];
+                if (!player.drinks) player.drinks = 0;
+                player.drinks += drinks;
+                showDrinksNotification(`Échec ! Buvez ${drinks} gorgée(s) !`, 2000);
+                
+                // Safely push cards to discard
+                if (mam.cards && Array.isArray(mam.cards) && mam.cards.length > 0) {
+                    gameState.discardPile.push(...mam.cards);
+                }
+                mam.cards = [];
+                mam.step = 1;
+            }
+
+            await gameRef.set(gameState);
+        }
+
+        function toggleRules() {
+            const modal = document.getElementById('rulesModal');
+            modal.classList.toggle('active');
+        }
+
+        document.getElementById('rulesModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                toggleRules();
+            }
+        });
+
+        // ============================================
+        // SCORE GUESSING FUNCTIONS
+        // ============================================
+        
+        async function submitScore() {
+            if (!gameState.waitingForScore || gameState.waitingForScore.playerId !== myPlayerId) return;
+
+            const input = document.getElementById('scoreInput');
+            const guessedScore = parseInt(input.value);
+            
+            if (isNaN(guessedScore)) {
+                alert('Veuillez entrer un nombre valide');
+                return;
+            }
+
+            const actualScore = gameState.waitingForScore.actualTotal;
+            const myPlayerIndex = gameState.waitingForScore.playerIndex;
+            const myPlayer = gameState.players[myPlayerIndex];
+            
+            // Show the real score for 5 seconds
+            gameState.showTotal = true;
+            gameState.waitingForScore = null;
+
+            if (guessedScore === actualScore) {
+                // Correct guess!
+                gameState.lastAction = `${myPlayer.name} a trouvé le bon score : ${actualScore} ! 🎯`;
+            } else {
+                // Wrong guess - take drinks equal to the difference
+                const difference = Math.abs(guessedScore - actualScore);
+                if (!myPlayer.drinks) myPlayer.drinks = 0;
+                myPlayer.drinks += difference;
+                gameState.lastAction = `${myPlayer.name} s'est trompé ! Il a dit ${guessedScore} au lieu de ${actualScore}. +${difference} gorgée(s) ! 😅`;
+                showDrinksNotification(`Mauvais score ! +${difference} gorgée(s) !`, 2000);
+            }
+
+            await gameRef.set(gameState);
+
+            // Hide score after 5 seconds and continue game
+            setTimeout(async () => {
+                if (!gameState) return;
+                
+                gameState.showTotal = false;
+                
+                // Check drinks and game continuation
+                checkDrinks();
+
+                if (gameState.currentTotal > 96) {
+                    startMiseAMort(myPlayerIndex);
+                } else if (!gameState.distributeDrinks) {
+                    // Only draw and move to next player if NOT in distribution mode
+                    if (!gameState.deck) gameState.deck = [];
+                    if (gameState.deck.length === 0) reshuffleDeck();
+                    if (gameState.deck && gameState.deck.length > 0) {
+                        myPlayer.hand.push(gameState.deck.pop());
+                    }
+                    moveToNextPlayer();
+                }
+                
+                await gameRef.set(gameState);
+            }, 5000);
+        }
+
+        // ============================================
+        // DRINKS DISTRIBUTION FUNCTIONS
+        // ============================================
+        
+        async function giveDrinkToPlayer(playerIndex) {
+            if (!gameState.distributeDrinks || gameState.distributeDrinks.distributorId !== myPlayerId) return;
+            if (gameState.distributeDrinks.remaining <= 0) return;
+            
+            const player = gameState.players[playerIndex];
+            if (!player.drinks) player.drinks = 0;
+            player.drinks += 1;
+            
+            gameState.distributeDrinks.remaining -= 1;
+            
+            showDrinksNotification(`${player.name} reçoit 1 gorgée !`, 1000);
+            
+            // Auto finish if all distributed
+            if (gameState.distributeDrinks.remaining === 0) {
+                gameState.distributeDrinks = null;
+                moveToNextPlayer();
+            }
+            
+            await gameRef.set(gameState);
+        }
+
+        async function finishDistribution() {
+            if (!gameState.distributeDrinks || gameState.distributeDrinks.distributorId !== myPlayerId) return;
+            
+            gameState.distributeDrinks = null;
+            moveToNextPlayer();
+            await gameRef.set(gameState);
+        }
+
+        async function resetMyDrinks() {
+            const myPlayer = gameState.players.find(p => p.id === myPlayerId);
+            if (myPlayer) {
+                myPlayer.drinks = 0;
+                await gameRef.set(gameState);
+            }
+        }
+
+        // ============================================
+        // CHAT FUNCTIONS
+        // ============================================
+        
+        let chatRef = null;
+
+        function setupChat() {
+            chatRef = database.ref('chats/' + currentGameId);
+            
+            // Listen for new messages
+            chatRef.on('child_added', (snapshot) => {
+                const message = snapshot.val();
+                displayChatMessage(message);
+            });
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const messageText = input.value.trim();
+            
+            if (!messageText || !chatRef) return;
+
+            const message = {
+                senderId: myPlayerId,
+                senderName: myPlayerName,
+                text: messageText,
+                timestamp: Date.now()
+            };
+
+            chatRef.push(message);
+            input.value = '';
+        }
+
+        function displayChatMessage(message) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            const isOwnMessage = message.senderId === myPlayerId;
+            messageDiv.className = `chat-message ${isOwnMessage ? 'own' : ''}`;
+            
+            const time = new Date(message.timestamp);
+            const timeStr = time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.innerHTML = `
+                <div class="chat-sender">${message.senderName}</div>
+                <div class="chat-text">${escapeHtml(message.text)}</div>
+                <div class="chat-time">${timeStr}</div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
