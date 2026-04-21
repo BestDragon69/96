@@ -1261,32 +1261,27 @@
             const myPlayerIndex = gameState.players.findIndex(p => p.id === myPlayerId);
             const myPlayer = gameState.players[myPlayerIndex];
             const targetPlayer = gameState.players[targetPlayerIndex];
+            const cardIndex = gameState.waitingForJokerChoice.cardIndex;
 
+            // 1. Retirer le joker AVANT l'échange (il est encore dans la main du joueur)
+            myPlayer.hand.splice(cardIndex, 1);
+            gameState.discardPile.push({ suit: 'joker', value: 'JOKER' });
+
+            // 2. Échanger les mains restantes
             const tempHand = myPlayer.hand;
             myPlayer.hand = targetPlayer.hand;
             targetPlayer.hand = tempHand;
 
-            const jokerIndex = myPlayer.hand.findIndex(c => c.value === 'JOKER');
-            if (jokerIndex !== -1) {
-                const joker = myPlayer.hand.splice(jokerIndex, 1)[0];
-                gameState.discardPile.push(joker);
-            }
-
-            if (!gameState.deck) gameState.deck = [];
-            if (gameState.deck.length === 0) reshuffleDeck();
-            if (gameState.deck && gameState.deck.length > 0) {
-                targetPlayer.hand.push(gameState.deck.pop());
-            }
-
-            if (gameState.deck.length === 0) reshuffleDeck();
-            if (gameState.deck && gameState.deck.length > 0) {
-                myPlayer.hand.push(gameState.deck.pop());
-            }
-
             gameState.lastAction = `${myPlayer.name} a échangé sa main avec ${targetPlayer.name} !`;
             gameState.waitingForJokerChoice = null;
-            
-            moveToNextPlayer();
+
+            // 3. Demander le score (le joker vaut 0, total inchangé)
+            gameState.waitingForScore = {
+                playerId: myPlayerId,
+                playerIndex: myPlayerIndex,
+                actualTotal: gameState.currentTotal
+            };
+            gameState.showTotal = false;
 
             await gameRef.set(gameState);
         }
