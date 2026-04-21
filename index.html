@@ -1273,6 +1273,13 @@
             myPlayer.hand = targetPlayer.hand;
             targetPlayer.hand = tempHand;
 
+            // Le joueur cible reçoit la main sans le joker (3 cartes) → il repioche 1 carte
+            if (!gameState.deck) gameState.deck = [];
+            if (gameState.deck.length === 0) reshuffleDeck();
+            if (gameState.deck && gameState.deck.length > 0) {
+                targetPlayer.hand.push(gameState.deck.pop());
+            }
+
             gameState.lastAction = `${myPlayer.name} a échangé sa main avec ${targetPlayer.name} !`;
             gameState.waitingForJokerChoice = null;
 
