@@ -1264,6 +1264,7 @@
             const cardIndex = gameState.waitingForJokerChoice.cardIndex;
 
             // 1. Retirer le joker AVANT l'échange (il est encore dans la main du joueur)
+            if (!gameState.discardPile) gameState.discardPile = [];
             myPlayer.hand.splice(cardIndex, 1);
             gameState.discardPile.push({ suit: 'joker', value: 'JOKER' });
 
