@@ -1530,6 +1530,12 @@
                 if (mam.step === 4) {
                     showDrinksNotification(`${gameState.players[mam.playerIndex].name} a survécu ! 🎉`, 3000);
                     gameState.players[mam.playerIndex].eliminated = false;
+                    // Repiocher une carte pour remplacer celle jouée avant la mise à mort
+                    if (!gameState.deck) gameState.deck = [];
+                    if (gameState.deck.length === 0) reshuffleDeck();
+                    if (gameState.deck && gameState.deck.length > 0) {
+                        gameState.players[mam.playerIndex].hand.push(gameState.deck.pop());
+                    }
                     gameState.miseAMort = null;
                     gameState.currentTotal = 0;
                     moveToNextPlayer();
