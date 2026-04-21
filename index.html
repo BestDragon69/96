@@ -1351,7 +1351,7 @@
                     player.drinks += drinks;
                 });
                 showDrinksNotification(`Multiple de 11 ! Tout le monde boit ${drinks} gorgée(s) !`, 2000);
-                gameRef.set(gameState);
+                // Pas de gameRef.set() ici — submitScore s'en charge avec le repiochage inclus
             }
         }
 
