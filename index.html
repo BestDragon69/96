@@ -1651,15 +1651,7 @@
             
             // Auto finish if all distributed
             if (gameState.distributeDrinks.remaining === 0) {
-                const distributorIndex = gameState.players.findIndex(p => p.id === myPlayerId);
-                const distributor = gameState.players[distributorIndex];
                 gameState.distributeDrinks = null;
-                // Repiocher une carte pour le distributeur
-                if (!gameState.deck) gameState.deck = [];
-                if (gameState.deck.length === 0) reshuffleDeck();
-                if (gameState.deck && gameState.deck.length > 0) {
-                    distributor.hand.push(gameState.deck.pop());
-                }
                 moveToNextPlayer();
             }
             
@@ -1669,15 +1661,7 @@
         async function finishDistribution() {
             if (!gameState.distributeDrinks || gameState.distributeDrinks.distributorId !== myPlayerId) return;
             
-            const distributorIndex = gameState.players.findIndex(p => p.id === myPlayerId);
-            const distributor = gameState.players[distributorIndex];
             gameState.distributeDrinks = null;
-            // Repiocher une carte pour le distributeur
-            if (!gameState.deck) gameState.deck = [];
-            if (gameState.deck.length === 0) reshuffleDeck();
-            if (gameState.deck && gameState.deck.length > 0) {
-                distributor.hand.push(gameState.deck.pop());
-            }
             moveToNextPlayer();
             await gameRef.set(gameState);
         }
