@@ -901,14 +901,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
 
     <script>
-        // ============================================
-        // CONFIGURATION FIREBASE - À REMPLACER !
-        // ============================================
-        // 1. Va sur https://console.firebase.google.com/
-        // 2. Crée un nouveau projet
-        // 3. Active "Realtime Database" en mode test
-        // 4. Dans les paramètres du projet, récupère ta configuration
-        // 5. Remplace les valeurs ci-dessous avec ta configuration
         
         const firebaseConfig = {
             apiKey: "AIzaSyDPB6tjA8bmbhdMRID0BD3FiA-V2vtVccY",
@@ -1857,14 +1849,22 @@ async function joinVideoCall() {
     // 6. Répondre aux appels entrants
     peer.on('call', (call) => {
         console.log('[VC] appel entrant de', call.peer);
-        // Si on a déjà un stream de cet utilisateur, ignorer le doublon
-        if (document.getElementById('vtile_' + call.peer)) {
-            console.log('[VC] doublon ignoré pour', call.peer);
-            call.answer(localStream); // répondre quand même pour ne pas bloquer l'appelant
-            return;
+        // Si doublon, fermer l'ancien appel mais TOUJOURS répondre et récupérer le stream
+        if (activeCalls[call.peer]) {
+            console.log('[VC] doublon : fermeture ancien appel pour', call.peer);
+            try { activeCalls[call.peer].close(); } catch(e) {}
+            delete activeCalls[call.peer];
         }
         call.answer(localStream);
-        handleCallStream(call);
+        // Récupérer le nom de l'appelant depuis les présences Firebase
+        vcAllPresenceRef.once('value', (snap) => {
+            let callerName = call.peer;
+            snap.forEach(child => {
+                const data = child.val();
+                if (data && data.peerId === call.peer) callerName = data.name;
+            });
+            handleCallStream(call, callerName);
+        });
     });
 
     peer.on('error', (err) => {
@@ -1885,6 +1885,10 @@ async function joinVideoCall() {
 
 function callPeer(remotePeerId, remoteName) {
     if (!peer || !localStream) return;
+    if (activeCalls[remotePeerId]) {
+        console.log('[VC] callPeer : déjà en appel avec', remotePeerId);
+        return; // Déjà connecté, ne pas rappeler
+    }
     const call = peer.call(remotePeerId, localStream);
     activeCalls[remotePeerId] = call;
     handleCallStream(call, remoteName);
@@ -1893,6 +1897,10 @@ function callPeer(remotePeerId, remoteName) {
 function handleCallStream(call, remoteName) {
     call.on('stream', (remoteStream) => {
         const name = remoteName || call.peer;
+        // Fermer un éventuel appel précédent pour ce peer
+        if (activeCalls[call.peer] && activeCalls[call.peer] !== call) {
+            try { activeCalls[call.peer].close(); } catch(e) {}
+        }
         activeCalls[call.peer] = call;
         renderVideoTile(call.peer, remoteStream, name, false);
     });
