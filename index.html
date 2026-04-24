@@ -1287,7 +1287,8 @@
             gameState.waitingForScore = {
                 playerId: myPlayerId,
                 playerIndex: myPlayerIndex,
-                actualTotal: gameState.currentTotal
+                actualTotal: gameState.currentTotal,
+                jokerSwap: true  // pas de repiochage dans submitScore
             };
             gameState.showTotal = false;
 
@@ -1624,11 +1625,13 @@
                 if (gameState.currentTotal > 96) {
                     startMiseAMort(currentPlayerIndex);
                 } else if (!gameState.distributeDrinks) {
-                    // Pas de distribution : repiocher et passer au suivant
-                    if (!gameState.deck) gameState.deck = [];
-                    if (gameState.deck.length === 0) reshuffleDeck();
-                    if (gameState.deck && gameState.deck.length > 0) {
-                        currentPlayer.hand.push(gameState.deck.pop());
+                    // Pas de distribution : repiocher seulement si ce n'est pas un joker (déjà géré)
+                    if (!gameState.waitingForScore?.jokerSwap) {
+                        if (!gameState.deck) gameState.deck = [];
+                        if (gameState.deck.length === 0) reshuffleDeck();
+                        if (gameState.deck && gameState.deck.length > 0) {
+                            currentPlayer.hand.push(gameState.deck.pop());
+                        }
                     }
                     moveToNextPlayer();
                 }
